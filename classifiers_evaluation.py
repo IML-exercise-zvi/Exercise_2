@@ -3,6 +3,7 @@ from typing import Tuple
 from utils import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import plotly.io as pio
 from math import atan2, pi
 import numpy as np
 
@@ -38,14 +39,31 @@ def run_perceptron():
     """
     for n, f in [("Linearly Separable", "linearly_separable.npy"), ("Linearly Inseparable", "linearly_inseparable.npy")]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(f)
 
-        # Fit Perceptron and record loss in each fit iteration
+        # Callback function to capture loss values
         losses = []
-        raise NotImplementedError()
+        def callback(perceptron: Perceptron, Xi, yi):
+            losses.append(perceptron._loss(X, y))
 
-        # Plot figure of loss as function of fitting iteration
-        raise NotImplementedError()
+        # Fit perceptron
+        Perceptron(callback=callback).fit(X, y)
+
+        # Plot figure of loss as a function of fitting iteration
+        iterations = list(range(1, len(losses) + 1))
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=iterations, y=losses, mode='lines', name=n))
+
+        # Update layout
+        fig.update_layout(title='Perceptron Training Loss Progression Over Iterations on ' + n + ' Dataset',
+                        xaxis_title='Iteration',
+                        yaxis_title='Training Loss Value (Misclassification Error)',
+                        legend_title='Dataset')
+
+        # Save figure
+        fig.write_image("perceptron_" + f.split(".")[0] + ".png")
+
+        
 
 def get_ellipse(mu: np.ndarray, cov: np.ndarray):
     """
@@ -103,4 +121,4 @@ def compare_gaussian_classifiers():
 if __name__ == '__main__':
     np.random.seed(0)
     run_perceptron()
-    compare_gaussian_classifiers()
+    #compare_gaussian_classifiers()
