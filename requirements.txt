@@ -1,0 +1,7 @@
+numpy==1.26.4
+packaging==24.1
+plotly==5.22.0
+tenacity==8.3.0
+typing-extensions==4.0.1
+future==0.18.2
+

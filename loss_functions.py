@@ -37,4 +37,4 @@ def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     -------
     Accuracy of given predictions
     """
-    return np.mean(y_true == y_pred)
+    return np.sum(y_true == y_pred) / y_true.size
