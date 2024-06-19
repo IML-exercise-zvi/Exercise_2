@@ -90,59 +90,62 @@ def get_ellipse(mu: np.ndarray, cov: np.ndarray):
 
     return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines", marker_color="black")
 
+def compare_gaussian_classifiers():
+    """
+    Fit both Gaussian Naive Bayes and LDA classifiers on both gaussians1 and gaussians2 datasets
+    """
+    for f in ["gaussian1.npy", "gaussian2.npy"]:
+            # Load dataset
+            X, y = load_dataset(f)
 
-for f in ["gaussian1.npy", "gaussian2.npy"]:
-        # Load dataset
-        X, y = load_dataset(f)
+            # Initialize classifiers
+            gnb = GaussianNaiveBayes()
+            lda = LDA()
 
-        # Initialize classifiers
-        gnb = GaussianNaiveBayes()
-        lda = LDA()
+            # Fit models and predict over training set
+            gnb.fit(X, y)
+            lda.fit(X, y)
+            gnb_predictions = gnb.predict(X)
+            lda_predictions = lda.predict(X)
 
-        # Fit models and predict over training set
-        gnb.fit(X, y)
-        lda.fit(X, y)
-        gnb_predictions = gnb.predict(X)
-        lda_predictions = lda.predict(X)
+            # Calculate accuracy
+            from loss_functions import accuracy
+            gnb_accuracy = accuracy(y, gnb_predictions)
+            lda_accuracy = accuracy(y, lda_predictions)
 
-        # Calculate accuracy
-        from loss_functions import accuracy
-        gnb_accuracy = accuracy(y, gnb_predictions)
-        lda_accuracy = accuracy(y, lda_predictions)
+            # Create subplots
+            fig = make_subplots(rows=1, cols=2, subplot_titles=(
+                f"Gaussian Naive Bayes\nAccuracy: {gnb_accuracy:.2f}",
+                f"LDA\nAccuracy: {lda_accuracy:.2f}"
+            ))
+            fig.update_layout(title_text=f"Dataset: {f}")
 
-        # Create subplots
-        fig = make_subplots(rows=1, cols=2, subplot_titles=(
-            f"Gaussian Naive Bayes\nAccuracy: {gnb_accuracy:.2f}",
-            f"LDA\nAccuracy: {lda_accuracy:.2f}"
-        ))
-        fig.update_layout(title_text=f"Dataset: {f}")
+            # Plot Gaussian Naive Bayes predictions
+            fig.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',
+                                    marker=dict(color=gnb_predictions, symbol=y, showscale=True)),
+                        row=1, col=1)
 
-        # Plot Gaussian Naive Bayes predictions
-        fig.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',
-                                 marker=dict(color=gnb_predictions, symbol=y, showscale=True)),
-                      row=1, col=1)
+            # Plot LDA predictions
+            fig.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',
+                                    marker=dict(color=lda_predictions, symbol=y, showscale=True)),
+                        row=1, col=2)
 
-        # Plot LDA predictions
-        fig.add_trace(go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers',
-                                 marker=dict(color=lda_predictions, symbol=y, showscale=True)),
-                      row=1, col=2)
+            # Add Gaussian centers and ellipses for GNB
+            for idx, mean in enumerate(gnb.mu_):
+                fig.add_trace(go.Scatter(x=[mean[0]], y=[mean[1]], mode='markers', marker=dict(color='black', symbol='x')),
+                            row=1, col=1)
+                fig.add_trace(get_ellipse(mean, np.diag(gnb.vars_[idx])), row=1, col=1)
 
-        # Add Gaussian centers and ellipses for GNB
-        for idx, mean in enumerate(gnb.mu_):
-            fig.add_trace(go.Scatter(x=[mean[0]], y=[mean[1]], mode='markers', marker=dict(color='black', symbol='x')),
-                          row=1, col=1)
-            fig.add_trace(get_ellipse(mean, np.diag(gnb.vars_[idx])), row=1, col=1)
+            # Add Gaussian centers and ellipses for LDA
+            for idx, mean in enumerate(lda.mu_):
+                fig.add_trace(go.Scatter(x=[mean[0]], y=[mean[1]], mode='markers', marker=dict(color='black', symbol='x')),
+                            row=1, col=2)
+                fig.add_trace(get_ellipse(mean, lda.cov_), row=1, col=2)
 
-        # Add Gaussian centers and ellipses for LDA
-        for idx, mean in enumerate(lda.mu_):
-            fig.add_trace(go.Scatter(x=[mean[0]], y=[mean[1]], mode='markers', marker=dict(color='black', symbol='x')),
-                          row=1, col=2)
-            fig.add_trace(get_ellipse(mean, lda.cov_), row=1, col=2)
-
-        fig.write_image("comparison_" + f.split(".")[0] + ".png")
+            fig.write_image("comparison_" + f.split(".")[0] + ".png")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    #run_perceptron()
+    run_perceptron()
     compare_gaussian_classifiers()

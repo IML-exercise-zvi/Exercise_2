@@ -72,16 +72,16 @@ class Perceptron(BaseEstimator):
         Fits model with or without an intercept depending on value of `self.include_intercept_`
         """
         if self.include_intercept_:
-            X = np.c_[np.ones(X.shape[0]), X]  # Add intercept term
+            X = np.c_[np.ones(X.shape[0]), X] # Add intercept
 
-        self.coefs_ = np.zeros(X.shape[1])
+        self.coefs_ = np.zeros(X.shape[1]) # Init coefficients
 
         for _ in range(self.max_iter_):
-            i = next((i for i in range(len(X)) if y[i] * (X[i] @ self.coefs_) <= 0), None)
+            i = next((i for i in range(len(X)) if y[i] * (X[i] @ self.coefs_) <= 0), None) # Find misclassified sample
             if i is None:
                 break
 
-            self.coefs_ += y[i] * X[i]
+            self.coefs_ += y[i] * X[i] # Update coefficients
             self.callback_(self, X[i], y[i])
         self.callback_(self, None, None)
 
@@ -99,9 +99,9 @@ class Perceptron(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        if self.include_intercept_ or X.shape[1] != self.coefs_.shape[0]:
+        if self.include_intercept_ or X.shape[1] != self.coefs_.shape[0]: # Add intercept if needed
             X = np.c_[np.ones(X.shape[0]), X]
-        return np.sign(X @ self.coefs_)
+        return np.sign(X @ self.coefs_) # Predict using sign of the samples and the coefs
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -168,22 +168,23 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        self.classes_ = np.unique(y)
-        n_classes = len(self.classes_)
-        n_features = X.shape[1]
+        self.classes_ = np.unique(y) 
+        n_classes = len(self.classes_) 
+        n_features = X.shape[1] 
 
-        self.mu_ = np.zeros((n_classes, n_features))
-        self.cov_ = np.zeros((n_features, n_features))
+        #create arrays to store means, covariance and class probabilities
+        self.mu_ = np.zeros((n_classes, n_features)) 
+        self.cov_ = np.zeros((n_features, n_features)) 
         self.pi_ = np.zeros(n_classes)
 
         for idx, c in enumerate(self.classes_):
-            X_c = X[y == c]
-            self.mu_[idx, :] = X_c.mean(axis=0)
-            self.cov_ += np.cov(X_c, rowvar=False) * (len(X_c) - 1)
-            self.pi_[idx] = len(X_c) / len(y)
+            X_c = X[y == c] #get samples of class c
+            self.mu_[idx, :] = X_c.mean(axis=0) #estimate mean
+            self.cov_ += np.cov(X_c, rowvar=False) * (len(X_c) - 1) #estimate covariance
+            self.pi_[idx] = len(X_c) / len(y) #estimate class probability
 
-        self.cov_ /= len(y) - n_classes
-        self._cov_inv = np.linalg.inv(self.cov_)
+        self.cov_ /= len(y) - n_classes #normalize covariance
+        self._cov_inv = np.linalg.inv(self.cov_) #invert covariance
         self.fitted_ = True
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -206,8 +207,9 @@ class LDA(BaseEstimator):
         scores = np.zeros((X.shape[0], len(self.classes_)))
 
         for idx, c in enumerate(self.classes_):
-            mean_vec = self.mu_[idx]
-            scores[:, idx] = X @ self._cov_inv @ mean_vec - 0.5 * mean_vec.T @ self._cov_inv @ mean_vec + np.log(self.pi_[idx])
+            mean_vec = self.mu_[idx] 
+            #calculate the discriminant function for each class
+            scores[:, idx] = X @ self._cov_inv @ mean_vec - 0.5 * mean_vec.T @ self._cov_inv @ mean_vec + np.log(self.pi_[idx]) 
 
         return self.classes_[np.argmax(scores, axis=1)]
 
@@ -230,12 +232,11 @@ class LDA(BaseEstimator):
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
         likelihoods = np.zeros((X.shape[0], len(self.classes_)))
-
         for idx, c in enumerate(self.classes_):
             mean_vec = self.mu_[idx]
             diff = X - mean_vec
             exponent = -0.5 * np.sum(diff @ self._cov_inv * diff, axis=1)
-            likelihoods[:, idx] = np.exp(exponent) * self.pi_[idx]
+            likelihoods[:, idx] = np.exp(exponent) * self.pi_[idx] #calculate likelihood using the gaussian distribution
 
         return likelihoods
 
@@ -310,7 +311,7 @@ class GaussianNaiveBayes(BaseEstimator):
             X_c = X[y == c]
             self.mu_[idx, :] = X_c.mean(axis=0)
             self.vars_[idx, :] = X_c.var(axis=0)
-            self.pi_[idx] = X_c.shape[0] / X.shape[0]
+            self.pi_[idx] = X_c.shape[0] / X.shape[0] #estimate class probability
 
         self.fitted_ = True
 
@@ -332,7 +333,7 @@ class GaussianNaiveBayes(BaseEstimator):
             raise ValueError("Estimator must first be fitted before calling `predict` function")
 
         likelihoods = self.likelihood(X)
-        return self.classes_[np.argmax(likelihoods, axis=1)]
+        return self.classes_[np.argmax(likelihoods, axis=1)] #predict using the class with the highest likelihood
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -360,6 +361,7 @@ class GaussianNaiveBayes(BaseEstimator):
             mean = self.mu_[idx]
             var = self.vars_[idx]
             log_prior = np.log(self.pi_[idx])
+            #calculate the likelihood using the gaussian distribution
             log_likelihood = -0.5 * np.sum(np.log(2. * np.pi * var)) - 0.5 * np.sum(((X - mean) ** 2) / (var), axis=1)
             likelihoods[:, idx] = log_prior + log_likelihood
 
